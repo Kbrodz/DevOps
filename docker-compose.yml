@@ -1,44 +1,53 @@
 version: '3'
 
 services:
-  myredis:
-    image: 'redis:alpine'
-
-  mypostgres:
-    image: 'postgres:alpine'
-    environment:
-        - POSTGRES_PASSWORD=12345
-        - POSTGRES_DB=postgres
-        - POSTGRES_USER=postgres
-    volumes:
-        - ./postgresdata:/var/lib/postgresql/data
-
-  mybackend:
-    build:
-      dockerfile: Dockerfile
-      context: ./mybackend
-    volumes:
-      - /opt/app/node_modules
-      - ./mybackend:/opt/app
-    environment:
-      - POSTGRES_HOST=mypostgres
-      - POSTGRES_PASSWORD=12345
-      - POSTGRES_DB=postgres
-      - POSTGRES_USER=postgres
-      - REDIS_HOST=myredis
-
-  myfrontend:
-    build:
-        dockerfile: Dockerfile.dev
-        context: ./myfrontend
-    volumes:
-        - /opt/app/node_modules
-        - ./myfrontend:/opt/app
-
-  mynginx:
-    restart: always
-    build:
-        dockerfile: Dockerfile
-        context: ./mynginx
-    ports:
-        - '9090:80'
+    myredis:
+        image: 'redis:alpine'
+        depends_on: 
+            - mypostgres
+    mypostgres:
+        restart: always
+        image: 'postgres:alpine'
+        environment:
+            - POSTGRES_PASSWORD=1qaz2wsx
+            - POSTGRES_DB=postgres
+            - POSTGRES_USER=postgres
+        volumes:
+          - ./postgresdata:/var/lib/postgresql/data
+    mybackend:
+        restart: always
+        build:
+            dockerfile: Dockerfile
+            context: ./mybackend
+        volumes:
+            - /opt/myapp/node_modules
+            - ./mybackend:/opt/myapp
+        environment:
+            - POSTGRES_PASSWORD=1qaz2wsx
+            - POSTGRES_DB=myappdb
+            - POSTGRES_USER=myappuser
+            - REDIS_HOST = myredis
+            - POSTGRES_HOST=mypostgres 
+            - CHOKIDAR_USEPOLLING=true
+        depends_on: 
+            - mypostgres
+            - myredis
+    mynginx:
+        restart: always
+        build: 
+            dockerfile: Dockerfile
+            context: ./mynginx
+        ports: 
+            - "9090:80"
+        depends_on: 
+            - mybackend
+            - myfrontend
+    myfrontend:
+        build:
+            dockerfile: Dockerfile.dev
+            context: ./myfrontend
+        environment: 
+            - CHOKIDAR_USEPOLLING=true
+        volumes:
+            - /opt/myapp/node_modules
+            - ./myfrontend:/opt/myapp       
