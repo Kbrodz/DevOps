@@ -1,36 +1,56 @@
-import './App.css';
-import { useState } from "react";
-import DodajRower from './DodajRower';
-import EdytujRower from './EdytujRower';
-import Rowery from './Rowery';
+import React, { Component } from "react";
+import { generateSudoku, checkSolution, shareUrl } from "./lib/sudoku";
+import produce from "immer";
+import SudokuBoard from "./components/SudokuBoard";
+import "./App.css";
 
-function App() {
+class App extends Component {
+  constructor(props) {
+    super(props);
+    this.state = produce({}, () => ({
+      sudoku: generateSudoku()
+    }));
+  }
 
-  const [initialValue1, setInitialValue1] = useState(1234);
-  const [initialValue2, setInitialValue2] = useState(1234);
-  const [currentRower, setCurrentRower] = useState(1)
-  const [deletedRower, setDeletedRower] = useState(1234)
-
-
-
-
-
-
-  const handleInitialValue = (event) => {
-    setInitialValue1(event.target.value);
+  handleChange = e => {
+    this.setState(
+      produce(state => {
+        state.sudoku.rows[e.row].cols[e.col].value = e.value;
+        if (!state.sudoku.solvedTime) {
+          const solved = checkSolution(state.sudoku);
+          if (solved) {
+            state.sudoku.solveTime = new Date();
+            state.sudoku.shareUrl = shareUrl(state.sudoku);
+          }
+        }
+      })
+    );
   };
-  return (
-    <div>
-      <>
-        {/* <input onChange={handleInitialValue}/> */}
 
-        <Rowery changed1={initialValue1} changed2={initialValue2} changed3={deletedRower} changeParentHandler3={setCurrentRower} />
-        <DodajRower changeParentHandler1={setInitialValue1} />
-        <EdytujRower currentRower={currentRower} changeParentHandler2={setInitialValue2} changeParentHandler4={setDeletedRower} />
+  solveSudoku = e => {
+    this.setState(
+      produce(state => {
+        state.sudoku.rows.forEach(row =>
+          row.cols.forEach(col => {
+            col.value = state.sudoku.solution[col.row * 9 + col.col];
+          })
+        );
+      })
+    );
+  };
 
-      </>
-    </div>
-  );
+  render() {
+    return (
+      <div className="App">
+        <header className="App-header">
+          <h1>Sudoku Stack</h1>
+        </header>
+        <SudokuBoard sudoku={this.state.sudoku} onChange={this.handleChange} />
+
+        <button onClick={this.solveSudoku}>Solve it Magically!</button>
+      </div>
+    );
+  }
 }
 
 export default App;
